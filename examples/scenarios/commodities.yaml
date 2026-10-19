@@ -1,0 +1,53 @@
+# Commodity scenarios: the world oil price above or below the baseline with different
+# shock shapes, and the oil price held on its baseline path.
+#
+#   oegem scenario validate examples/scenarios/commodities.yaml
+#   oegem scenario show examples/scenarios/commodities.yaml        # the command lines each sends
+#   oegem scenario build examples/scenarios/commodities.yaml --out-dir outputs/3fs
+#
+# WPO_EQN:WORLD stands for the world oil price in these examples: check the mnemonic in
+# your own catalogue (`oegem catalogue search oil`). Shock sizes are illustrative round
+# numbers, not calibrated to anything.
+#
+# type: pct multiplies the input-forecast values by 1 + v/100 (MULTIPLY) and FIXes the
+# variable over the shocked window. The scenario is therefore relative to whichever
+# release you solve it against and contains no levels.
+# Profiles write the values for you; see oegem.profiles for the shapes:
+#   linear_fade {value, hold, fade}   decay {value, rho, n}   hump {peak, up, hold, fade}
+#   step {value, n}                   ramp {value, n}
+
+scenarios:
+  - name: oil_up_20
+    description: World oil price 20% above baseline through 2027, back on baseline by the end of 2028
+    shocks:
+      - var: WPO_EQN:WORLD
+        type: pct
+        start: 2027Q1
+        profile: {kind: linear_fade, value: 20, hold: 4, fade: 4}   # 20, 20, 20, 20, 15, 10, 5, 0
+
+  - name: oil_down_20
+    description: The mirror image of oil_up_20, with the oil price 20% below baseline
+    shocks:
+      - var: WPO_EQN:WORLD
+        type: pct
+        start: 2027Q1
+        profile: {kind: linear_fade, value: -20, hold: 4, fade: 4}
+
+  - name: oil_spike_30
+    description: A 30% spike in 2027Q1 that halves every quarter
+    shocks:
+      - var: WPO_EQN:WORLD
+        type: pct
+        start: 2027Q1
+        profile: {kind: decay, value: 30, rho: 0.5, n: 6}             # 30, 15, 7.5, 3.75, ...
+        # A decay never reaches zero. When the FIX window ends after six quarters, the
+        # price goes back to being solved as in the input forecast, so a small step is
+        # left at the end of the window. Use linear_fade if you need a smooth return.
+
+  - name: oil_at_baseline
+    description: Oil price held on its input-forecast path over the solve range
+    shocks:
+      # FIX on its own keeps the input-forecast values. It matters when the release
+      # computes the oil price from an equation; combined with another shock it removes
+      # the oil channel (see confidence_down_oil_fixed in confidence_and_demand.yaml).
+      - {var: WPO_EQN:WORLD, type: fix, window: "2026Q3:2030Q4"}
