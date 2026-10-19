@@ -1,0 +1,32 @@
+# Fiscal scenarios: US government consumption 1% above baseline, imposed in two ways.
+#
+#   oegem scenario validate examples/scenarios/fiscal.yaml
+#   oegem scenario diff examples/scenarios/fiscal.yaml::us_gc_up_1pct_value examples/scenarios/fiscal.yaml::us_gc_up_1pct_residual
+#
+# GC:US stands for US real government consumption in these examples: check the mnemonic
+# in your own catalogue (`oegem catalogue search government`). The 1% is an illustrative
+# round number.
+#
+# Value shock (type pct): MULTIPLY GC:US by 1.01 and FIX it. Government consumption is
+#   exactly 1% above baseline in every shocked quarter, whatever else the model does.
+# Residual shock (type residual_ratio here): move the add-factor of the GC equation
+#   instead. GC starts out about 1% higher but stays endogenous, so it can react to the
+#   rest of the model (prices, fiscal rules, ...) and the realized change can differ from
+#   1%. Solve both and compare GC:US itself in the results to see the difference.
+#
+# A residual shock only has an effect where the variable has an equation. Read the
+# equation and its residual type before sizing the shock:
+#   oegem equations --groups US --indicators GC
+# Multiplicative residual: factors such as 1.01 (type residual_ratio, as below).
+# Additive residual: values in the units of the equation (type residual).
+
+scenarios:
+  - name: us_gc_up_1pct_value
+    description: US government consumption 1% above baseline over 2027-2028 (value shock, FIXed)
+    shocks:
+      - {var: GC:US, type: pct, start: 2027Q1, profile: {kind: step, value: 1, n: 8}}
+
+  - name: us_gc_up_1pct_residual
+    description: The same impulse through the residual of the GC equation; GC stays endogenous
+    shocks:
+      - {var: GC:US, type: residual_ratio, start: 2027Q1, profile: {kind: step, value: 1.01, n: 8}}
