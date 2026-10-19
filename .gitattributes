@@ -1,0 +1,5 @@
+# Store text files with LF endings; check them out with the platform default.
+* text=auto
+
+# Git hooks run under sh and must keep LF endings on every platform.
+tools/hooks/* text eol=lf
