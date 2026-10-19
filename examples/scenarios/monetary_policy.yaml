@@ -1,0 +1,37 @@
+# Monetary policy scenarios for the US policy rate.
+#
+#   oegem scenario validate examples/scenarios/monetary_policy.yaml
+#   oegem scenario show examples/scenarios/monetary_policy.yaml
+#
+# RFED:US stands for the US policy rate in these examples:
+# check the mnemonic in your own catalogue (`oegem catalogue search rate`).
+# The +100bp is an illustrative round number; for a rate quoted in percent it is 1.0.
+#
+# Two ways to impose a rate path:
+#   1. A value shock plus FIX. The rate is exogenous over the window, so any policy rule
+#      the release has is switched off there. After the window the rate is solved as in
+#      the input forecast again.
+#   2. A temporary value shock, then UNFIX. UNFIX makes a variable endogenous over a
+#      window. Use it when the input forecast itself holds the rate fixed (for example a
+#      judgmental path) and you want the model's own response after your shock instead
+#      of a jump back to that fixed path.
+
+scenarios:
+  - name: us_rate_up_100bp
+    description: US policy rate 100bp above baseline for the four quarters of 2027 (FIXed)
+    shocks:
+      - var: RFED:US
+        type: abs                 # INCREASE by the values, in the variable's own units
+        start: 2027Q1
+        values: [1.0, 1.0, 1.0, 1.0]
+        fix: true                 # the default for abs: FIX RFED:US 2027Q1:2027Q4
+
+  - name: us_rate_temporary_then_unfix
+    description: US policy rate 100bp higher for two quarters, then endogenous for the rest of the solve range
+    shocks:
+      - var: RFED:US
+        type: abs
+        start: 2027Q1
+        values: [1.0, 1.0]
+        fix: "2027Q1:2027Q2"      # an explicit FIX window instead of true
+      - {var: RFED:US, type: unfix, window: "2027Q3:2030Q4"}
