@@ -1,0 +1,61 @@
+# This repository holds code and documentation only. Everything the model
+# produces (data, equations, catalogues, solved scenarios) is licensed content
+# and stays on your machine. The patterns below are a safety net; the leak
+# check in tools/check_confidential.py is the second one.
+
+# ---- Credentials -------------------------------------------------------
+# OE_TOKEN and the OE_AUTH_* settings come from the environment, never a file.
+.env
+.env.*
+*.token
+token.txt
+*secret*
+*credential*
+
+# ---- Model content and output -------------------------------------------
+# Default output and cache locations used by the toolkit.
+outputs/
+.oegem_cache/
+
+# Scenario command files can carry baseline-derived levels. The illustrative
+# examples are the only ones tracked.
+*.3fs
+!examples/**/*.3fs
+
+# Data, catalogues, equations, manifests and reports in any format.
+*.xlsx
+*.xls
+*.csv
+*.parquet
+*.pq
+*.json
+*.mat
+*.tex
+*.dot
+*.html
+
+# Charts and documents.
+*.pdf
+*.png
+*.svg
+*.pptx
+*.docx
+*.log
+
+# ---- Python / MATLAB / editor cruft ------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+/build/
+/dist/
+.pytest_cache/
+.venv/
+venv/
+*.asv
+*.bak
+.claude/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
