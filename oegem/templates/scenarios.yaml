@@ -1,0 +1,45 @@
+# Illustrative scenarios for run.yaml. The shock sizes are round numbers chosen to show
+# the syntax; they are not calibrated to anything. The mnemonics and group codes are
+# examples: check every one in your own catalogue (`oegem catalogue search <text>`)
+# before you solve against a real release.
+#
+#   oegem scenario validate scenarios.yaml    # parse and check
+#   oegem scenario show scenarios.yaml        # the command lines each scenario sends
+#
+# Shock types: level | pct | ratio | abs | residual | residual_ratio | fix | unfix
+#   level, pct, ratio and abs change the variable itself and FIX it over the shocked
+#   window; residual and residual_ratio shift the equation's add-factor instead, so the
+#   variable stays endogenous.
+# Values: an explicit list (one per period from `start`) or a profile such as
+#   {kind: linear_fade, value: 20, hold: 4, fade: 4}  (also step, decay, ramp, hump).
+
+scenarios:
+  - name: oil_up_20
+    description: World oil price 20% above baseline for a year, fading out over the next year
+    shocks:
+      - var: WPO_EQN:WORLD
+        type: pct                  # MULTIPLY by 1 + pct/100, with a FIX over the window
+        start: 2027Q1
+        profile: {kind: linear_fade, value: 20, hold: 4, fade: 4}
+
+  - name: us_rates_up_100bp
+    description: US policy rate 100bp above baseline for four quarters
+    shocks:
+      - var: RFED:US
+        type: abs                  # INCREASE by the values (percentage points for a rate)
+        start: 2027Q1
+        values: [1.0, 1.0, 1.0, 1.0]
+
+  - name: china_consumption_down
+    description: Lower private consumption in China through its equation residual
+    shocks:
+      - var: C:CHINA
+        type: residual             # INCREASE &C:CHINA, no FIX: the equation still solves for C
+        start: 2027Q1
+        values: [-0.01, -0.01, -0.01, -0.01]
+        # A residual is in the units of its equation: look at the equation and its residual
+        # type first (`oegem equations --groups CHINA --indicators C`) and size the shock to match.
+
+  # Combine scenarios by listing earlier ones under `include:`:
+  # - name: oil_and_rates
+  #   include: [oil_up_20, us_rates_up_100bp]
