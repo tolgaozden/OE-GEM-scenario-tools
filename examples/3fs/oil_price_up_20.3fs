@@ -1,0 +1,25 @@
+# scenario: oil_price_up_20
+# description: World oil price 20% above the input forecast through 2027, back on it by the end of 2028
+#
+# A native scenario command file: one command per line, '#' starts a comment.
+# It holds no levels. MULTIPLY scales whatever values the input forecast has, so the
+# same file works against any release you solve it on.
+#
+# WPO_EQN:WORLD stands for the world oil price in these examples: check the mnemonic in
+# your own catalogue (`oegem catalogue search oil`). The 20% is an illustrative round
+# number, not model output.
+#
+# Check it, show it, or compare it with the same scenario written in YAML:
+#   oegem scenario validate examples/3fs/oil_price_up_20.3fs
+#   oegem scenario diff examples/3fs/oil_price_up_20.3fs examples/scenarios/commodities.yaml::oil_up_20
+
+# Ratios to the input forecast, one per quarter from 2027Q1: 1.2 = 20% above it.
+# Four quarters at +20%, then a straight-line fade over four quarters; the last value
+# (1) puts the price back on the input forecast. A run of equal values can also be
+# written as n@v, e.g. 4@1.2.
+MULTIPLY WPO_EQN:WORLD 2027Q1 1.2, 1.2, 1.2, 1.2, 1.15, 1.1, 1.05, 1
+
+# FIX makes the variable exogenous over the shocked window, so the values above hold
+# even if the release computes the oil price from an equation. Outside the window the
+# variable is solved as in the input forecast again.
+FIX WPO_EQN:WORLD 2027Q1:2028Q4
