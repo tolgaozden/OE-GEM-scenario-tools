@@ -1,0 +1,12 @@
+# Country groupings for weighted averages in reports (`aggregates: groupings.yaml`).
+# Format: AGGREGATE: {GROUP: weight, ...}. The weights below are illustrative round
+# numbers: derive real ones from data you fetch, for example nominal GDP in US dollars
+# with oegem.aggregate.weights_from_values.
+# Reports average growth rates, rates and deviations with these weights, never levels
+# in different currencies. The group codes are examples: check them in your own
+# catalogue (`oegem catalogue search <text>` or `oegem catalogue groups`).
+
+ASIA_3:
+  CHINA: 2
+  JAPAN: 1
+  INDIA: 1
