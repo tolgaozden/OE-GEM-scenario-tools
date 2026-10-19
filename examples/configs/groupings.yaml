@@ -1,0 +1,18 @@
+# Illustrative country groupings for report_quickstart.yaml (`aggregates: groupings.yaml`).
+#
+# The weights are equal or round numbers chosen to show the format. They are NOT
+# economic weights. Real weights should come from your own data, for example nominal GDP
+# in US dollars fetched with oegem.data.fetch and turned into shares with
+# oegem.aggregate.weights_from_values(df, indicator, period, groups).
+#
+# Reports average growth rates, rates and deviations with these weights, never levels in
+# different currencies. Weights need not sum to one; members without a value in a period
+# drop out and the rest are reweighted. Aggregate names must not clash with group codes.
+# Group codes are examples: check each in your own catalogue (`oegem catalogue groups`).
+
+EXAMPLE_ASIA_2: [CHINA, JAPAN]     # a list means equal weights
+
+EXAMPLE_BIG_3:                     # round illustrative weights
+  US: 2
+  CHINA: 2
+  JAPAN: 1
