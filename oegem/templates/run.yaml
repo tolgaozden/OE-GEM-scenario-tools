@@ -1,0 +1,34 @@
+# Run config: solve every scenario in scenarios.yaml against one model release, then
+# fetch the baseline and the solved scenarios into outputs/<run_name>/.
+#
+#   oegem --demo run run.yaml       # offline, synthetic data (NOT model output)
+#   oegem run run.yaml --dry-run    # build and check the scenarios, no solves
+#   oegem run run.yaml              # real API: needs OE_TOKEN (check with `oegem auth status`)
+#
+# The mnemonics and group codes below (GDP, CPI, RSH, WPO_EQN, US, CHINA, ...) are
+# examples: check every one in your own catalogue (`oegem catalogue search <text>`).
+
+run_name: starter
+
+model:
+  release: latest:5yr              # or a release name, a full path or a forecast id (`oegem releases`)
+
+solve:
+  from: 2026Q3                     # solve range: keep it inside the release's forecast horizon
+  to: 2031Q4
+  output_folder: /me/oegem-runs    # workspace folder; each solve goes to <folder>/<run_name>/<scenario>-<timestamp>
+  max_parallel: 1                  # 1..4 solves in flight
+  # resolve: levels                # turn pct/abs/ratio shocks into SET levels from the release's own values
+
+fetch:                             # what to download after the solves
+  indicators: [GDP, CPI, RSH, WPO_EQN]
+  groups: [US, CHINA, JAPAN, INDIA, WORLD]
+  from: 2024Q1                     # start early enough for growth rates in the first report year
+  to: 2031Q4
+  annual_fallback: true            # economies without quarterly data come back as annual values
+
+scenario_files: [scenarios.yaml]   # relative to this file; inline `scenarios:` work too
+
+output:
+  dir: outputs/{run_name}          # relative to this file
+  formats: [csv]                   # results.<ext>: csv, xlsx and/or parquet
