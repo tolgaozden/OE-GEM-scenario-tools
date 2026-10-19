@@ -1,0 +1,52 @@
+# Library run: every scenario file in examples/scenarios plus the native .3fs example,
+# solved two at a time.
+#
+#   oegem --demo run examples/configs/run_library.yaml              # offline, synthetic numbers
+#   oegem run examples/configs/run_library.yaml --dry-run           # build and check all 19 scenarios
+#   oegem run examples/configs/run_library.yaml --only oil_up_20,us_gc_up_1pct_value
+#
+# With the real API this is 19 solves (a minute or two each, two in flight), created in
+# your workspace under /me/oegem-examples/library/. oil_up_20, leg_oil and the .3fs
+# (oil_price_up_20) send the same commands, written three ways, so a live run solves
+# that scenario three times. Run again after a failure: resume skips what already solved.
+#
+# Mnemonics and group codes are examples: check each in your own catalogue
+# (`oegem catalogue search <text>`). Shock sizes are illustrative round numbers.
+
+run_name: library
+description: The example scenario library
+
+model:
+  release: latest:5yr
+
+solve:
+  from: 2026Q3
+  to: 2030Q4
+  output_folder: /me/oegem-examples
+  max_parallel: 2                 # up to 4 solves in flight; the runner polls them in turn
+
+fetch:
+  indicators: [GDP, CPI, C, IF, GC, X, M, RSH, RLG, WPO_EQN]
+  groups: [US, EURO_11, JAPAN, CHINA, INDIA, KOREA, INDONESI, WORLD]
+  from: 2025Q1
+  to: 2030Q4
+  annual_fallback: true           # economies without quarterly data come back as annual values
+
+scenario_files:                   # relative to this file; scenario names must be unique across files
+  - ../scenarios/commodities.yaml
+  - ../scenarios/monetary_policy.yaml
+  - ../scenarios/fiscal.yaml
+  - ../scenarios/confidence_and_demand.yaml
+  - ../scenarios/combined.yaml
+  - ../3fs/oil_price_up_20.3fs    # a .3fs is one scenario, named by its "# scenario:" header line
+
+# Inline scenarios can include any scenario loaded through scenario_files, across files.
+# (A scenario file can also include from the files listed before it.)
+scenarios:
+  - name: fiscal_and_rates
+    description: us_gc_up_1pct_value (fiscal.yaml) and us_rate_up_100bp (monetary_policy.yaml) together
+    include: [us_gc_up_1pct_value, us_rate_up_100bp]
+
+output:
+  dir: ../../outputs/examples/{run_name}
+  formats: [csv]
