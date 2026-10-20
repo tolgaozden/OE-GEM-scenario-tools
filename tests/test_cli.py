@@ -14,10 +14,7 @@ from oegem.cli import build_parser, main
 from oegem.data import LONG_COLUMNS, load
 
 COMMANDS = ["auth", "releases", "catalogue", "data", "equations", "params", "deps", "meta", "profile", "scenario",
-            "run", "report", "plot", "compare-releases", "workspace", "check-leaks", "init"]
-# The mnemonics examples may use (build spec, confidentiality rule 5).
-EXAMPLE_INDICATORS = {"GDP", "CPI", "C", "IF", "GC", "X", "M", "RSH", "RLG", "WPO_EQN", "RFED", "CONF_SHOCK"}
-EXAMPLE_GROUPS = {"US", "CHINA", "JAPAN", "EURO_11", "INDIA", "KOREA", "INDONESI", "WORLD"}
+            "run", "report", "plot", "compare-releases", "workspace", "check-leaks"]
 
 SCENARIOS = {"scenarios": [
     {"name": "oil_up", "description": "Illustrative +20% oil price",
@@ -331,16 +328,36 @@ def test_meta_and_profile_commands(capsys, tmp_path):
     assert pd.read_csv(target)["suggested_class"].tolist() == ["satellite"]
 
 
-def test_init_run_report_round_trip(capsys, tmp_path, monkeypatch):
+RUN_YAML = """run_name: starter
+solve: {from: 2026Q3, to: 2030Q4}
+fetch: {indicators: [AAA, BBB], groups: [ALPHA, GAMMA], from: 2024Q1, to: 2030Q4}
+scenarios:
+  - name: aaa_up
+    shocks:
+      - {var: AAA:ALPHA, type: pct, start: 2027Q1, profile: {kind: linear_fade, value: 10, hold: 2, fade: 2}}
+  - name: bbb_down
+    shocks:
+      - {var: BBB:ALPHA, type: abs, start: 2027Q1, values: [-1, -1]}
+  - name: joint
+    include: [aaa_up, bbb_down]
+output: {formats: [csv]}
+"""
+REPORT_YAML = """input: outputs/starter
+aggregates: {AGG_2: {ALPHA: 1, GAMMA: 1}}
+variables:
+  - {indicator: AAA, label: Fictional activity, quarterly: [yoy], annual: [annual_avg, yoy], deviation: abs}
+  - {indicator: BBB, label: Fictional prices, annual: [annual_avg, yoy], deviation: abs}
+periods: {quarterly: "2026Q1:2028Q4", annual: "2026:2030"}
+outputs: {dir: outputs/starter/report, xlsx: true, markdown: true, html: true, charts: true}
+"""
+
+
+def test_run_report_plot_round_trip(capsys, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    code, out, _ = cli(capsys, "init", "proj")
-    assert code == 0 and "next steps" in out
     proj = tmp_path / "proj"
-    names = ("run.yaml", "scenarios.yaml", "report.yaml", "groupings.yaml", ".gitignore")
-    for name in names:
-        assert (proj / name).is_file()
-    assert "outputs/" in (proj / ".gitignore").read_text(encoding="utf-8")
-    assert cli(capsys, "init", "proj")[0] == 2                # never overwrites
+    proj.mkdir()
+    (proj / "run.yaml").write_text(RUN_YAML, encoding="utf-8")
+    (proj / "report.yaml").write_text(REPORT_YAML, encoding="utf-8")
 
     code, out, err = cli(capsys, "--demo", "run", proj / "run.yaml")
     assert code == 0, err
@@ -352,35 +369,16 @@ def test_init_run_report_round_trip(capsys, tmp_path, monkeypatch):
     for name in ("report.xlsx", "report.md", "report.html", "report_charts.pdf"):
         assert (run_dir / "report" / name).is_file()
         assert name in out
-    assert "ASIA_3" in (run_dir / "report" / "report.md").read_text(encoding="utf-8")
+    assert "AGG_2" in (run_dir / "report" / "report.md").read_text(encoding="utf-8")
 
-    code, out, _ = cli(capsys, "plot", "--input", run_dir, "--indicator", "GDP", "--groups", "US,CHINA",
-                       "--transforms", "annual_avg,yoy", "--deviation", "abs", "--out", "gdp.png")
-    assert code == 0 and (tmp_path / "gdp.png").stat().st_size > 0
-    code, _, _ = cli(capsys, "plot", "--input", run_dir / "results.csv", "--indicator", "cpi", "--forecasts",
-                     "oil_up_20", "--out", "cpi.svg")
-    assert code == 0 and (tmp_path / "cpi.svg").is_file()
+    code, out, _ = cli(capsys, "plot", "--input", run_dir, "--indicator", "AAA", "--groups", "ALPHA,GAMMA",
+                       "--transforms", "annual_avg,yoy", "--deviation", "abs", "--out", "aaa.png")
+    assert code == 0 and (tmp_path / "aaa.png").stat().st_size > 0
+    code, _, _ = cli(capsys, "plot", "--input", run_dir / "results.csv", "--indicator", "bbb", "--forecasts",
+                     "aaa_up", "--out", "bbb.svg")
+    assert code == 0 and (tmp_path / "bbb.svg").is_file()
     assert cli(capsys, "plot", "--input", run_dir, "--indicator", "NOPE", "--out", "x.png")[0] == 2
-    assert cli(capsys, "plot", "--input", run_dir, "--indicator", "GDP", "--out", "x.txt")[0] == 2
-
-
-def test_templates_use_example_mnemonics_only(capsys, tmp_path):
-    assert cli(capsys, "init", tmp_path / "proj")[0] == 0
-    proj = tmp_path / "proj"
-    texts = {p.name: p.read_text(encoding="utf-8") for p in proj.glob("*.yaml")}
-    for name, text in texts.items():
-        assert "oegem catalogue search" in text, name
-    run_cfg = yaml.safe_load(texts["run.yaml"])
-    assert set(run_cfg["fetch"]["indicators"]) <= EXAMPLE_INDICATORS
-    assert set(run_cfg["fetch"]["groups"]) <= EXAMPLE_GROUPS
-    for scen in yaml.safe_load(texts["scenarios.yaml"])["scenarios"]:
-        for shock in scen["shocks"]:
-            indicator, group = shock["var"].lstrip("&").split(":")
-            assert indicator in EXAMPLE_INDICATORS and group in EXAMPLE_GROUPS
-    rep = yaml.safe_load(texts["report.yaml"])
-    assert {v["indicator"] for v in rep["variables"]} <= EXAMPLE_INDICATORS and set(rep["groups"]) <= EXAMPLE_GROUPS
-    for members in yaml.safe_load(texts["groupings.yaml"]).values():
-        assert set(members) <= EXAMPLE_GROUPS
+    assert cli(capsys, "plot", "--input", run_dir, "--indicator", "AAA", "--out", "x.txt")[0] == 2
 
 
 def test_compare_releases(capsys, tmp_path):
