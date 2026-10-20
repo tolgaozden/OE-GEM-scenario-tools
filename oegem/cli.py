@@ -16,7 +16,6 @@ Commands::
     compare-releases A B              two releases side by side, plus the revision
     workspace ls|mkdir|mv|archive|rm  folders and forecasts in the workspace
     check-leaks                       scan files or git content for credentials and model content
-    init DIR                          starter project with run, scenario, report and grouping configs
 
 Global options: ``--demo`` (synthetic offline backend, same as OEGEM_DEMO=1), ``-v``/``-vv``
 and ``--version``. Commands that use a release take ``--release SPEC`` (default: the
@@ -76,9 +75,6 @@ LICENSED_NOTE = ("note: equations, coefficients and model data are licensed cont
 TABLE_EXTS = (".csv", ".xlsx", ".parquet", ".pq", ".md", ".json")
 CHART_EXTS = (".png", ".pdf", ".svg")
 EQUATION_FORMATS = ("md", "tex", "xlsx", "json")
-# (file in oegem/templates, name in the new project); package data cannot be a dotfile.
-TEMPLATES = (("run.yaml", "run.yaml"), ("scenarios.yaml", "scenarios.yaml"), ("report.yaml", "report.yaml"),
-             ("groupings.yaml", "groupings.yaml"), ("gitignore", ".gitignore"))
 META_COLUMNS = ("indicator", "group", "Description", "Unit", "Scaling", "HistoryEnd", "AnnualizationType",
                 "IsSeasonallyAdjusted", "BaseYearIndex", "BaseYearPrice")
 CONTACTS_NOTE = ("note: --keep-contacts kept contact names, e-mail addresses and internal ids: personal data of "
@@ -93,7 +89,6 @@ examples:
   oegem auth status                            is OE_TOKEN set, valid and accepted?
   oegem catalogue search "oil price"           find mnemonics in the latest release
   oegem data --indicators GDP,CPI --groups US,CHINA --from 2024Q1 --out values.csv
-  oegem init my_project                        starter run/report/scenario configs
   oegem run run.yaml && oegem report report.yaml
 
 Mnemonics in these examples are illustrative: check them in your own catalogue.
@@ -339,15 +334,6 @@ def _expiry_line(claims) -> str:
     minutes = (when - datetime.now(timezone.utc)).total_seconds() / 60.0
     stamp = when.strftime("%Y-%m-%d %H:%M UTC")
     return f"{stamp} (EXPIRED {_duration(minutes)} ago)" if minutes <= 0 else f"{stamp} (in {_duration(minutes)})"
-
-
-def _template(name: str) -> str:
-    """Text of a starter-project template shipped in oegem/templates."""
-    try:
-        from importlib.resources import files
-        return files("oegem").joinpath("templates").joinpath(name).read_text(encoding="utf-8")
-    except (ImportError, AttributeError, FileNotFoundError, NotADirectoryError):
-        return (Path(__file__).resolve().parent / "templates" / name).read_text(encoding="utf-8")
 
 
 def _pick_scenario(spec: str) -> Scenario:
@@ -857,25 +843,6 @@ def cmd_check_leaks(ctx: _Context) -> int:
     return int(leakcheck.main(argv))
 
 
-def cmd_init(ctx: _Context) -> int:
-    """init DIR: starter project folder."""
-    target = Path(ctx.args.dir)
-    if target.exists() and (not target.is_dir() or any(target.iterdir())):
-        raise ValueError(f"{target} exists and is not empty; pick a new folder (init never overwrites files).")
-    texts = [(dest, _template(src)) for src, dest in TEMPLATES]      # read all before writing any
-    target.mkdir(parents=True, exist_ok=True)
-    for dest, text in texts:
-        (target / dest).write_text(text, encoding="utf-8")
-    _print(f"created {target} with: {', '.join(dest for dest, _ in texts)}")
-    _print("next steps:")
-    _print(f"  cd {target}")
-    _print("  oegem --demo run run.yaml            # try it offline on synthetic data")
-    _print("  oegem --demo report report.yaml")
-    _print("  oegem catalogue search <text>        # check every mnemonic against your own catalogue")
-    _print("  oegem run run.yaml                   # real solves; needs OE_TOKEN (oegem auth status)")
-    return 0
-
-
 # --------------------------------------------------------------------------- parser
 
 
@@ -1090,18 +1057,16 @@ def build_parser() -> argparse.ArgumentParser:
     w.add_argument("path", metavar="PATH")
     w.add_argument("--yes", action="store_true", help="confirm the deletion")
 
-    # check-leaks / init
+    # check-leaks
     p = add(sub, "check-leaks", cmd_check_leaks, "scan files or git content for credentials and model content")
     p.add_argument("paths", nargs="*", metavar="PATH", help="files or folders (default: tracked files, or .)")
-    p.add_argument("--staged", action="store_true", help="scan the staged files (what the pre-commit hook does)")
+    p.add_argument("--staged", action="store_true", help="scan the staged files")
     p.add_argument("--tracked", action="store_true", help="scan every tracked file")
     p.add_argument("--history", action="store_true", help="scan every blob reachable from any ref")
     p.add_argument("--deny", metavar="FILE", help="deny-term list to use")
     p.add_argument("--repo", metavar="DIR", help="repository for the git modes (default: .)")
     p.add_argument("--list-rules", action="store_true", help="print the rules and exit")
 
-    p = add(sub, "init", cmd_init, "create a starter project folder: run, scenario, report and grouping configs")
-    p.add_argument("dir", metavar="DIR", help="new (or empty) folder")
     return parser
 
 
