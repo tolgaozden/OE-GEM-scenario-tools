@@ -6,7 +6,6 @@ build-backend = "setuptools.build_meta"
 name = "oe-gem-scenario-tools"
 version = "0.2.0"
 description = "Toolkit for the Oxford Economics Global Economic Model web API: releases, catalogue, data, scenarios, solves, reports and model introspection"
-readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
     "requests>=2.25",
