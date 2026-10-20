@@ -1,9 +1,9 @@
 """Confidentiality guard: find credentials and licensed model content before git does.
 
-The GEM is a licensed, confidential model, so this repository holds code and
-documentation only. This module scans text, files and git content for what must
+The GEM is a licensed, confidential model, so this repository holds code
+only. This module scans text, files and git content for what must
 never be committed and reports every hit as a :class:`Finding`. It uses the
-standard library only, so the git hook runs with a bare Python.
+standard library only, so it runs on a bare Python.
 
 Rules (``--list-rules`` prints the one-line explanations):
 
@@ -712,7 +712,7 @@ def _emit(text: str = "", stream=None) -> None:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="check_confidential",
+        prog="oegem check-leaks",
         description="Scan for credentials and licensed model content (equations, coefficients, "
                     "data, output files) before they reach git.",
         epilog="With no PATH and no mode: --tracked inside a git repository, else the current "
@@ -722,7 +722,7 @@ def _parser() -> argparse.ArgumentParser:
                "'leakcheck: allow' on that line.",
     )
     parser.add_argument("paths", nargs="*", metavar="PATH", help="files or directories to scan")
-    parser.add_argument("--staged", action="store_true", help="scan the staged files (the pre-commit hook)")
+    parser.add_argument("--staged", action="store_true", help="scan the staged files")
     parser.add_argument("--tracked", action="store_true", help="scan every tracked file (working-tree content)")
     parser.add_argument("--history", action="store_true", help="scan every blob reachable from any ref")
     parser.add_argument("--deny", metavar="FILE", help="deny-term list to use")
@@ -771,7 +771,7 @@ def _report(findings: List[Finding], scanned: int, modes: List[str], deny_note: 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     """Command-line entry point.
 
-    Args: argv as for ``check_confidential.py`` (see ``--help``); None reads sys.argv.
+    Args: argv as for ``oegem check-leaks`` (see ``--help``); None reads sys.argv.
     Returns: 0 when clean, 1 when there are findings, 2 on a usage error.
     """
     try:
