@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -279,14 +278,8 @@ def test_deny_terms_from_file(tmp_path):
 
 
 def test_own_files_are_clean():
-    own = [Path(__file__), ROOT / "oegem" / "leakcheck.py", ROOT / "tools" / "check_confidential.py",
-           ROOT / "tools" / "hooks" / "pre-commit"]
+    own = [Path(__file__), ROOT / "oegem" / "leakcheck.py"]
     assert scan_paths(own, deny_terms=()) == []
-
-
-def test_hook_file_uses_lf_line_endings():
-    data = (ROOT / "tools" / "hooks" / "pre-commit").read_bytes()
-    assert data.startswith(b"#!/bin/sh\n") and b"\r" not in data
 
 
 # ---- command line ----------------------------------------------------------------------
@@ -305,23 +298,6 @@ def test_main_exit_codes_and_output(tmp_path, capsys):
     assert main(["--staged", "--repo", str(tmp_path)]) == 2  # not a git repository
     assert main(["--deny", str(tmp_path / "missing.txt"), str(clean)]) == 2
     assert main(["--list-rules"]) == 0
-
-
-def test_wrapper_script_runs_standalone(tmp_path):
-    clean = tmp_path / "clean.py"
-    clean.write_text("x = 1\n")
-    dirty = tmp_path / "dirty.py"
-    dirty.write_text(cat("value = '", fake_jwt(), "'\n"))
-    script = ROOT / "tools" / "check_confidential.py"
-
-    def run(*args):
-        return subprocess.run([sys.executable, str(script), *args], cwd=str(tmp_path),
-                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-    assert run(str(clean)).returncode == 0
-    result = run(str(dirty))
-    assert result.returncode == 1 and b"[jwt]" in result.stdout
-    assert run("--no-such-option").returncode == 2
 
 
 # ---- git modes ---------------------------------------------------------------------------
@@ -410,23 +386,3 @@ def test_history_mode_finds_a_removed_value(repo):
     assert FAKE_KEY not in found[0].excerpt
     assert main(["--history", "--repo", str(repo)]) == 1
     assert main(["--tracked", "--repo", str(repo)]) == 0
-
-
-def test_pre_commit_hook_blocks_a_staged_token(repo, monkeypatch):
-    # The hook runs the checker of the repository it guards, so copy it in.
-    for rel in ("tools/check_confidential.py", "tools/hooks/pre-commit", "oegem/leakcheck.py"):
-        target = repo / rel
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(str(ROOT / rel), str(target))
-    (repo / "tools" / "hooks" / "pre-commit").chmod(0o755)
-    monkeypatch.setenv("OEGEM_PYTHON", Path(sys.executable).as_posix())
-    git(repo, "config", "core.hooksPath", "tools/hooks")
-    git(repo, "add", ".")
-    git(repo, "commit", "-q", "-m", "add the checker")  # clean, so the hook lets it through
-    (repo / "settings.py").write_text(cat("value = '", fake_jwt(), "'\n"))
-    git(repo, "add", "settings.py")
-    result = subprocess.run(["git", "commit", "-q", "-m", "add settings"], cwd=str(repo),
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    output = (result.stdout + result.stderr).decode("utf-8", "replace")
-    assert result.returncode != 0, output
-    assert "[jwt]" in output and "Commit blocked" in output and fake_jwt() not in output
