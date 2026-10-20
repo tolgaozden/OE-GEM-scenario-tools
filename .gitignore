@@ -17,10 +17,8 @@ token.txt
 outputs/
 .oegem_cache/
 
-# Scenario command files can carry baseline-derived levels. The illustrative
-# examples are the only ones tracked.
+# Scenario command files can carry baseline-derived levels; none are tracked.
 *.3fs
-!examples/**/*.3fs
 
 # Data, catalogues, equations, manifests and reports in any format.
 *.xlsx
